@@ -47,17 +47,17 @@ ruby - << EOF
   end
 
   users = %x[aws iam list-users --query 'Users[*].[UserName]' --profile #{ENV['AWS_PROFILE']} --output text]
+  users = users.split(/\n/)
 
   if parallel
-    u = users.split(/\n/)
-    keys = Parallel.map(u, in_processes: 8) do |user|
+    keys = Parallel.map(users, in_processes: 8) do |user|
       [user, get_keys(user)]
     end
 
     puts Hash[ keys.map{ |a| [a.first,a.last] } ].to_json
   else
     keys = {}
-    users.split(/\n/).each do |user|
+    users.each do |user|
       keys[user] = get_keys(user)
     end
 
