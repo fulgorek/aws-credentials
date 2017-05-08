@@ -7,6 +7,7 @@ export AWS_PROFILE=${profile:-default}
 aws sts get-caller-identity --query 'Arn' --output text >/dev/null 2>&1 || { echo "Invalid AWS profile. Aborting." >&2; exit 1; }
 
 # Python Version
+function run_python(){
 python - << EOF
 print 'Python Version'
 
@@ -28,9 +29,10 @@ for user in users.splitlines():
 
 print json.dumps(keys, sort_keys=True)
 EOF
-
+}
 
 # Ruby Version
+function run_ruby() {
 ruby - << EOF
   require 'json'
   puts 'Ruby Version'
@@ -49,3 +51,30 @@ ruby - << EOF
 
   puts keys.sort.to_json
 EOF
+}
+
+PS3='Please enter your choice: '
+options=("Python" "Ruby" "Both" "Quit")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "Python")
+            run_python
+            break
+            ;;
+        "Ruby")
+            run_ruby
+            break
+            ;;
+        "Both")
+            run_python
+            run_ruby
+            break
+            ;;
+        "Quit")
+            echo "bye!"
+            break
+            ;;
+        *) echo invalid option;;
+    esac
+done
