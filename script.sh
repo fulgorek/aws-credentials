@@ -33,9 +33,13 @@ EOF
 
 # Ruby Version
 function run_ruby() {
+export PARALLEL=${1:-false}
 ruby - << EOF
   require 'json'
-  puts 'Ruby Version'
+  require 'parallel' if ENV['PARALLEL'] == 'true'
+
+  parallel = ENV['PARALLEL'] == 'true'
+  puts parallel ? 'Ruby Parallel Version (using 8 processes)' : 'Ruby Version'
 
   def get_keys(user)
     keys = %x[aws iam list-access-keys --user-name #{user} --query 'AccessKeyMetadata[*][AccessKeyId]' --profile #{ENV['AWS_PROFILE']} --output text]
@@ -44,17 +48,34 @@ ruby - << EOF
 
   users = %x[aws iam list-users --query 'Users[*].[UserName]' --profile #{ENV['AWS_PROFILE']} --output text]
 
-  keys = {}
-  users.split(/\n/).each do |user|
-    keys[user] = get_keys(user)
+  if parallel
+    u = users.split(/\n/)
+    keys = Parallel.map(u, in_processes: 8) do |user|
+      [user, get_keys(user)]
+    end
+
+    puts Hash[ keys.map{ |a| [a.first,a.last] } ].to_json
+  else
+    keys = {}
+    users.split(/\n/).each do |user|
+      keys[user] = get_keys(user)
+    end
+
+    puts keys.sort.to_json
   end
 
-  puts keys.sort.to_json
 EOF
 }
 
+function check_parallel_gem(){
+if ! gem spec parallel > /dev/null 2>&1; then
+  echo "Gem parallel is not installed!. Aborting."
+  break
+fi
+}
+
 PS3='Please enter your choice: '
-options=("Python" "Ruby" "Both" "Quit")
+options=("Python" "Ruby" "Both" "parallel" "Quit")
 select opt in "${options[@]}"
 do
     case $opt in
@@ -69,6 +90,11 @@ do
         "Both")
             run_python
             run_ruby
+            break
+            ;;
+        "parallel")
+            check_parallel_gem
+            run_ruby true
             break
             ;;
         "Quit")
