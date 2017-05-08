@@ -12,3 +12,10 @@ Return a valid JSON object where the keys are IAM usernames, and the values are 
 ## Instructions
 `$ ./script.sh`
 follow instructions
+
+
+## Bonus!
+Getting every key is slow? I've added parallel processing!
+just install the parallel gem:
+`gem install parallel`
+select option 4)
